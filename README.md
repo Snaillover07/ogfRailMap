@@ -1,5 +1,4 @@
-# ogfRailMap
-Opengeofiction Railway Map
+# Opengeofiction Railway Map
 
 ## How to Use
 ### Prerequisites
