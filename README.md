@@ -3,7 +3,7 @@ Opengeofiction Railway Map is a railway map for OpenGeoFiction, similar to [Open
 ## How to Use
 ### Prerequisites
 - Have [Python](https://www.python.org/downloads/) installed
-- Have a brower
+- Have a browser
 
 ### Instructions
 
@@ -22,7 +22,7 @@ Opengeofiction Railway Map is a railway map for OpenGeoFiction, similar to [Open
         out skel qt;
 
     into the text box, and replace Territory with your territory ID
-5. Replace Territory with your territory ID, then click run  
+5. Click run, and wait a bit for everything to appear on the map. 
 6. On the top bar, click export, then GeoJSON Download.  
 7. Name it ```Railways.geojson```, and place in same folder as index.html  
 8. Open command prompt / terminal, and type in ```cd "Your folder path"```  
