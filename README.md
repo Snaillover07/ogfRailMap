@@ -1,5 +1,5 @@
 # Opengeofiction Railway Map
-
+Opengeofiction Railway Map is a railway map for OpenGeoFiction, similar to [OpenRailwayMap](openrailwaymap.org)
 ## How to Use
 ### Prerequisites
 - Have [Python](https://www.python.org/downloads/) installed
