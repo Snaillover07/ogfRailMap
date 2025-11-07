@@ -26,5 +26,5 @@ Opengeofiction Railway Map is a railway map for OpenGeoFiction, similar to [Open
 6. On the top bar, click export, then GeoJSON Download.  
 7. Name it ```Railways.geojson```, and place in same folder as index.html  
 8. Open command prompt / terminal, and type in ```cd "Your folder path"```  
-9. Run ```python3 -m http.server 8000```  
+9. Run ```python -m http.server 8000```  
 10. Open ```Localhost:8000``` in your browser  
