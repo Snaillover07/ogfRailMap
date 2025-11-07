@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>OGF Rail Infrastructure Map</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body { margin: 0; font-family: sans-serif; }
+    #map { height: 100vh; width: 100vw; }
+    .legend {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      background: white;
+      padding: 10px;
+      border: 1px solid #ccc;
+      font-size: 13px;
+      line-height: 1.4;
+      z-index: 1000;
+      pointer-events: none;
+    }
+    .color-box {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      margin-right: 5px;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div class="legend">
+    <strong>Max Speed (km/h)</strong><br>
+    <div><span class="color-box" style="background:#d9d9d9;"></span> 0–19</div>
+    <div><span class="color-box" style="background:#bdbdbd;"></span> 20–39</div>
+    <div><span class="color-box" style="background:#969696;"></span> 40–59</div>
+    <div><span class="color-box" style="background:#737373;"></span> 60–79</div>
+    <div><span class="color-box" style="background:#525252;"></span> 80–99</div>
+    <div><span class="color-box" style="background:#3182bd;"></span> 100–119</div>
+    <div><span class="color-box" style="background:#6baed6;"></span> 120–139</div>
+    <div><span class="color-box" style="background:#9ecae1;"></span> 140–159</div>
+    <div><span class="color-box" style="background:#c6dbef;"></span> 160–179</div>
+    <div><span class="color-box" style="background:#deebf7;"></span> 180–199</div>
+    <div><span class="color-box" style="background:#fee0d2;"></span> 200–219</div>
+    <div><span class="color-box" style="background:#fcbba1;"></span> 220–239</div>
+    <div><span class="color-box" style="background:#fc9272;"></span> 240–259</div>
+    <div><span class="color-box" style="background:#fb6a4a;"></span> 260–279</div>
+    <div><span class="color-box" style="background:#ef3b2c;"></span> 280–299</div>
+    <div><span class="color-box" style="background:#cb181d;"></span> ≥ 300</div>
+    <br><strong>Status & Type</strong><br>
+    <div><span class="color-box" style="background:#888;"></span> Abandoned</div>
+    <div><span class="color-box" style="background:#ff9900;"></span> Construction</div>
+    <div><span class="color-box" style="background:#00ccff;"></span> Proposed</div>
+    <div><span class="color-box" style="background:#ff0000;"></span> High Speed (≥250)</div>
+    <br><strong>Infrastructure</strong><br>
+    <div><span class="color-box" style="background:#444;"></span> Railway=Rail</div>
+    <br><strong>Other Rail Types</strong><br>
+    <div><span class="color-box" style="background:#9900cc;"></span> Narrow Gauge</div>
+    <div><span class="color-box" style="background:#ff66cc;"></span> Tram</div>
+    <div><span class="color-box" style="background:#66ccff;"></span> Light Rail</div>
+    <div><span class="color-box" style="background:#ffcc00;"></span> Funicular</div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    const map = L.map('map').setView([0, 0], 3);
+
+    const ogfTiles = L.tileLayer('https://tile.opengeofiction.net/ogf-carto/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenGeofiction contributors',
+      maxZoom: 19
+    });
+
+    const whiteTiles = L.tileLayer('', {
+      maxZoom: 19,
+      getTileUrl: () => 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAn8B9Z5XkZkAAAAASUVORK5CYII='
+    });
+
+    ogfTiles.addTo(map);
+        fetch('railways.geojson')
+      .then(res => res.json())
+      .then(data => {
+        const speedLayer = L.geoJSON(data, {
+          style: feature => {
+            const speed = parseInt(feature.properties.maxspeed);
+            let color = '#d9d9d9';
+            if (!isNaN(speed)) {
+              if (speed < 20) color = '#d9d9d9';
+              else if (speed < 40) color = '#bdbdbd';
+              else if (speed < 60) color = '#969696';
+              else if (speed < 80) color = '#737373';
+              else if (speed < 100) color = '#525252';
+              else if (speed < 120) color = '#3182bd';
+              else if (speed < 140) color = '#6baed6';
+              else if (speed < 160) color = '#9ecae1';
+              else if (speed < 180) color = '#c6dbef';
+              else if (speed < 200) color = '#deebf7';
+              else if (speed < 220) color = '#fee0d2';
+              else if (speed < 240) color = '#fcbba1';
+              else if (speed < 260) color = '#fc9272';
+              else if (speed < 280) color = '#fb6a4a';
+              else if (speed < 300) color = '#ef3b2c';
+              else color = '#cb181d';
+            }
+            return { color, weight: 4 };
+          },
+          filter: f => f.properties.maxspeed,
+          onEachFeature: (f, l) => {
+            const s = f.properties.maxspeed || 'unknown';
+            const t = f.properties.railway || 'railway';
+            l.bindPopup(`Max Speed: ${s}<br>Type: ${t}`);
+          }
+        });
+
+        const statusLayer = L.geoJSON(data, {
+          style: f => {
+            const r = f.properties.railway || '';
+            const s = parseInt(f.properties.maxspeed);
+            let color = null;
+            if (r === 'abandoned') color = '#888';
+            else if (r === 'construction') color = '#ff9900';
+            else if (r === 'proposed') color = '#00ccff';
+            else if (r === 'rail' && s >= 250) color = '#ff0000';
+            return color ? { color, weight: 2, dashArray: '4 4' } : null;
+          },
+          filter: f => {
+            const r = f.properties.railway;
+            const s = parseInt(f.properties.maxspeed);
+            return r === 'abandoned' || r === 'construction' || r === 'proposed' || (r === 'rail' && s >= 250);
+          },
+          onEachFeature: (f, l) => {
+            const r = f.properties.railway || 'railway';
+            const s = f.properties.maxspeed || '';
+            l.bindPopup(`Status: ${r}<br>Max Speed: ${s}`);
+          }
+        });
+
+        const infraLayer = L.geoJSON(data, {
+          style: { color: '#444', weight: 1 },
+          filter: f => f.properties.railway === 'rail',
+          onEachFeature: (f, l) => {
+            const name = f.properties.name || '';
+            l.bindPopup(`Railway: ${f.properties.railway}${name ? `<br>Name: ${name}` : ''}`);
+          }
+        });
+
+        const otherRailLayer = L.geoJSON(data, {
+          style: f => {
+            const r = f.properties.railway;
+            if (r === 'narrow_gauge') return { color: '#9900cc', weight: 2 };
+            if (r === 'tram') return { color: '#ff66cc', weight: 2 };
+            if (r === 'light_rail') return { color: '#66ccff', weight: 2 };
+            if (r === 'funicular') return { color: '#ffcc00', weight: 2 };
+            return null;
+          },
+          filter: f => ['narrow_gauge', 'tram', 'light_rail', 'funicular'].includes(f.properties.railway),
+          onEachFeature: (f, l) => {
+            const r = f.properties.railway;
+            const name = f.properties.name || '';
+            l.bindPopup(`Type: ${r}${name ? `<br>Name: ${name}` : ''}`);
+          }
+        });
+                const baseMaps = {
+          "OGF Tiles": ogfTiles,
+          "White Background": whiteTiles
+        };
+
+        const overlays = {
+          "Max Speed": speedLayer,
+          "Status & Type": statusLayer,
+          "Infrastructure": infraLayer,
+          "Other Rail Types": otherRailLayer
+        };
+
+        // Add all overlays by default
+        speedLayer.addTo(map);
+        statusLayer.addTo(map);
+        infraLayer.addTo(map);
+        otherRailLayer.addTo(map);
+
+        // Add layer control
+        L.control.layers(baseMaps, overlays, { collapsed: false }).addTo(map);
+
+        // Fit map to infrastructure layer bounds
+        map.fitBounds(infraLayer.getBounds());
+      })
+      .catch(err => {
+        console.error('Failed to load railways.geojson:', err);
+        alert('Could not load railways.geojson. Make sure the file is present.');
+      });
+  </script>
+</body>
+</html>
