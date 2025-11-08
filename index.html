@@ -1,25 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>OpenRailFiction</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <title>OGF Rail Infrastructure Map</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
     body { margin: 0; font-family: sans-serif; }
     #map { height: 100vh; width: 100vw; }
-    .legend {
+
+    .leaflet-control-layers {
+      margin-top: 10px;
+    }
+
+    .legend-container {
       position: absolute;
       bottom: 20px;
       left: 20px;
+      z-index: 1000;
+    }
+
+    .legend-toggle {
+      background: #fff;
+      border: 1px solid #ccc;
+      padding: 5px 10px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .legend {
+      display: block;
       background: white;
       padding: 10px;
       border: 1px solid #ccc;
       font-size: 13px;
       line-height: 1.4;
-      z-index: 1000;
-      pointer-events: none;
+      margin-top: 5px;
+      pointer-events: auto;
+      max-height: 700px;
+      overflow-y: auto;
     }
+
     .color-box {
       display: inline-block;
       width: 12px;
@@ -27,40 +48,17 @@
       margin-right: 5px;
       vertical-align: middle;
     }
+
+    .greyscale-tiles {
+      filter: grayscale(100%) brightness(90%);
+    }
   </style>
 </head>
 <body>
   <div id="map"></div>
-  <div class="legend">
-    <strong>Max Speed (km/h)</strong><br>
-    <div><span class="color-box" style="background:#d9d9d9;"></span> 0–19</div>
-    <div><span class="color-box" style="background:#bdbdbd;"></span> 20–39</div>
-    <div><span class="color-box" style="background:#969696;"></span> 40–59</div>
-    <div><span class="color-box" style="background:#737373;"></span> 60–79</div>
-    <div><span class="color-box" style="background:#525252;"></span> 80–99</div>
-    <div><span class="color-box" style="background:#3182bd;"></span> 100–119</div>
-    <div><span class="color-box" style="background:#6baed6;"></span> 120–139</div>
-    <div><span class="color-box" style="background:#9ecae1;"></span> 140–159</div>
-    <div><span class="color-box" style="background:#c6dbef;"></span> 160–179</div>
-    <div><span class="color-box" style="background:#deebf7;"></span> 180–199</div>
-    <div><span class="color-box" style="background:#fee0d2;"></span> 200–219</div>
-    <div><span class="color-box" style="background:#fcbba1;"></span> 220–239</div>
-    <div><span class="color-box" style="background:#fc9272;"></span> 240–259</div>
-    <div><span class="color-box" style="background:#fb6a4a;"></span> 260–279</div>
-    <div><span class="color-box" style="background:#ef3b2c;"></span> 280–299</div>
-    <div><span class="color-box" style="background:#cb181d;"></span> ≥ 300</div>
-    <br><strong>Status & Type</strong><br>
-    <div><span class="color-box" style="background:#888;"></span> Abandoned</div>
-    <div><span class="color-box" style="background:#ff9900;"></span> Construction</div>
-    <div><span class="color-box" style="background:#00ccff;"></span> Proposed</div>
-    <div><span class="color-box" style="background:#ff0000;"></span> High Speed (≥250)</div>
-    <br><strong>Infrastructure</strong><br>
-    <div><span class="color-box" style="background:#444;"></span> Railway=Rail</div>
-    <br><strong>Other Rail Types</strong><br>
-    <div><span class="color-box" style="background:#9900cc;"></span> Narrow Gauge</div>
-    <div><span class="color-box" style="background:#ff66cc;"></span> Tram</div>
-    <div><span class="color-box" style="background:#66ccff;"></span> Light Rail</div>
-    <div><span class="color-box" style="background:#ffcc00;"></span> Funicular</div>
+  <div class="legend-container">
+    <div class="legend-toggle" onclick="toggleLegend()">Legend</div>
+    <div class="legend" id="legend"></div>
   </div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -77,118 +75,337 @@
       getTileUrl: () => 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAn8B9Z5XkZkAAAAASUVORK5CYII='
     });
 
-    ogfTiles.addTo(map);
-        fetch('railways.geojson')
-      .then(res => res.json())
-      .then(data => {
-        const speedLayer = L.geoJSON(data, {
-          style: feature => {
-            const speed = parseInt(feature.properties.maxspeed);
-            let color = '#d9d9d9';
-            if (!isNaN(speed)) {
-              if (speed < 20) color = '#d9d9d9';
-              else if (speed < 40) color = '#bdbdbd';
-              else if (speed < 60) color = '#969696';
-              else if (speed < 80) color = '#737373';
-              else if (speed < 100) color = '#525252';
-              else if (speed < 120) color = '#3182bd';
-              else if (speed < 140) color = '#6baed6';
-              else if (speed < 160) color = '#9ecae1';
-              else if (speed < 180) color = '#c6dbef';
-              else if (speed < 200) color = '#deebf7';
-              else if (speed < 220) color = '#fee0d2';
-              else if (speed < 240) color = '#fcbba1';
-              else if (speed < 260) color = '#fc9272';
-              else if (speed < 280) color = '#fb6a4a';
-              else if (speed < 300) color = '#ef3b2c';
-              else color = '#cb181d';
-            }
-            return { color, weight: 4 };
-          },
-          filter: f => f.properties.maxspeed,
-          onEachFeature: (f, l) => {
-            const s = f.properties.maxspeed || 'unknown';
-            const t = f.properties.railway || 'railway';
-            l.bindPopup(`Max Speed: ${s}<br>Type: ${t}`);
-          }
-        });
+    const greyTiles = L.tileLayer('https://tile.opengeofiction.net/ogf-carto/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenGeofiction contributors',
+      maxZoom: 19,
+      className: 'greyscale-tiles'
+    });
 
-        const statusLayer = L.geoJSON(data, {
-          style: f => {
-            const r = f.properties.railway || '';
-            const s = parseInt(f.properties.maxspeed);
-            let color = null;
-            if (r === 'abandoned') color = '#888';
-            else if (r === 'construction') color = '#ff9900';
-            else if (r === 'proposed') color = '#00ccff';
-            else if (r === 'rail' && s >= 250) color = '#ff0000';
-            return color ? { color, weight: 2, dashArray: '4 4' } : null;
-          },
-          filter: f => {
-            const r = f.properties.railway;
-            const s = parseInt(f.properties.maxspeed);
-            return r === 'abandoned' || r === 'construction' || r === 'proposed' || (r === 'rail' && s >= 250);
-          },
-          onEachFeature: (f, l) => {
-            const r = f.properties.railway || 'railway';
-            const s = f.properties.maxspeed || '';
-            l.bindPopup(`Status: ${r}<br>Max Speed: ${s}`);
-          }
-        });
 
-        const infraLayer = L.geoJSON(data, {
-          style: { color: '#444', weight: 1 },
-          filter: f => f.properties.railway === 'rail',
-          onEachFeature: (f, l) => {
-            const name = f.properties.name || '';
-            l.bindPopup(`Railway: ${f.properties.railway}${name ? `<br>Name: ${name}` : ''}`);
-          }
-        });
+    greyTiles.addTo(map);
 
-        const otherRailLayer = L.geoJSON(data, {
-          style: f => {
-            const r = f.properties.railway;
-            if (r === 'narrow_gauge') return { color: '#9900cc', weight: 2 };
-            if (r === 'tram') return { color: '#ff66cc', weight: 2 };
-            if (r === 'light_rail') return { color: '#66ccff', weight: 2 };
-            if (r === 'funicular') return { color: '#ffcc00', weight: 2 };
-            return null;
-          },
-          filter: f => ['narrow_gauge', 'tram', 'light_rail', 'funicular'].includes(f.properties.railway),
-          onEachFeature: (f, l) => {
-            const r = f.properties.railway;
-            const name = f.properties.name || '';
-            l.bindPopup(`Type: ${r}${name ? `<br>Name: ${name}` : ''}`);
-          }
-        });
-                const baseMaps = {
-          "OGF Tiles": ogfTiles,
-          "White Background": whiteTiles
-        };
 
-        const overlays = {
-          "Max Speed": speedLayer,
-          "Status & Type": statusLayer,
-          "Infrastructure": infraLayer,
-          "Other Rail Types": otherRailLayer
-        };
+    const activeLayers = new Set();
 
-        // Add all overlays by default
-        speedLayer.addTo(map);
-        statusLayer.addTo(map);
-        infraLayer.addTo(map);
-        otherRailLayer.addTo(map);
+    function toggleLegend() {
+      const legend = document.getElementById('legend');
+      legend.style.display = legend.style.display === 'none' ? 'block' : 'none';
+    }
 
-        // Add layer control
-        L.control.layers(baseMaps, overlays, { collapsed: false }).addTo(map);
+    function updateLegend() {
+      const legend = document.getElementById('legend');
+      legend.innerHTML = '';
 
-        // Fit map to infrastructure layer bounds
-        map.fitBounds(infraLayer.getBounds());
-      })
-      .catch(err => {
-        console.error('Failed to load railways.geojson:', err);
-        alert('Could not load railways.geojson. Make sure the file is present.');
-      });
+      if (activeLayers.has('Max Speed')) {
+        legend.innerHTML += `
+          <strong>Max Speed (km/h)</strong><br>
+          <div><span class="color-box" style="background:#d9d9d9;"></span> 0–19</div>
+          <div><span class="color-box" style="background:#bdbdbd;"></span> 20–39</div>
+          <div><span class="color-box" style="background:#969696;"></span> 40–59</div>
+          <div><span class="color-box" style="background:#737373;"></span> 60–79</div>
+          <div><span class="color-box" style="background:#525252;"></span> 80–99</div>
+          <div><span class="color-box" style="background:#3182bd;"></span> 100–119</div>
+          <div><span class="color-box" style="background:#6baed6;"></span> 120–139</div>
+          <div><span class="color-box" style="background:#9ecae1;"></span> 140–159</div>
+          <div><span class="color-box" style="background:#c6dbef;"></span> 160–179</div>
+          <div><span class="color-box" style="background:#deebf7;"></span> 180–199</div>
+          <div><span class="color-box" style="background:#fee0d2;"></span> 200–219</div>
+          <div><span class="color-box" style="background:#fcbba1;"></span> 220–239</div>
+          <div><span class="color-box" style="background:#fc9272;"></span> 240–259</div>
+          <div><span class="color-box" style="background:#fb6a4a;"></span> 260–279</div>
+          <div><span class="color-box" style="background:#ef3b2c;"></span> 280–299</div>
+          <div><span class="color-box" style="background:#cb181d;"></span> ≥ 300</div><br>
+        `;
+      }
+
+      if (activeLayers.has('Status & Type')) {
+        legend.innerHTML += `
+          <strong>Status & Type</strong><br>
+          <div><span class="color-box" style="background:#888;"></span> Abandoned</div>
+          <div><span class="color-box" style="background:#ff9900;"></span> Construction</div>
+          <div><span class="color-box" style="background:#00ccff;"></span> Proposed</div>
+          <div><span class="color-box" style="background:#ff0000;"></span> High Speed (≥250)</div>
+          <div><span class="color-box" style="background:#000000;"></span> Normal Rail</div><br>
+        `;
+      }
+
+      if (activeLayers.has('Other Rail Types')) {
+        legend.innerHTML += `
+          <strong>Other Rail Types</strong><br>
+          <div><span class="color-box" style="background:#009999;"></span> Metro</div>
+          <div><span class="color-box" style="background:#9900cc;"></span> Narrow Gauge</div>
+          <div><span class="color-box" style="background:#ff66cc;"></span> Tram</div>
+          <div><span class="color-box" style="background:#66ccff;"></span> Light Rail</div>
+          <div><span class="color-box" style="background:#ffcc00;"></span> Funicular</div><br>
+        `;
+      }
+
+      if (activeLayers.has('Electrification')) {
+        legend.innerHTML += `
+          <strong>Electrification</strong><br>
+          <div><span class="color-box" style="background:#00ff00;"></span> Yes</div>
+          <div><span class="color-box" style="background:#ff0000;"></span> No</div>
+          <div><span class="color-box" style="background:#0000ff;"></span> Contact Line</div><br>
+          <strong>AC Voltage Scale</strong><br>
+          <div><span class="color-box" style="background:#ffcc00;"></span> < 1 kV</div>
+          <div><span class="color-box" style="background:#00ccff;"></span> 1–5 kV</div>
+          <div><span class="color-box" style="background:#6600cc;"></span> ≥ 15 kV</div>
+          <strong>DC Voltage Scale</strong><br>
+          <div><span class="color-box" style="background:#ffcc00;"></span> < 750 V DC</div>
+          <div><span class="color-box" style="background:#ff9900;"></span> 750–1500 V DC</div>
+          <div><span class="color-box" style="background:#ff6600;"></span> 1500–3000 V DC</div>
+          <div><span class="color-box" style="background:#ff3300;"></span> ≥ 3000 V DC</div><br>
+        `;
+      }
+
+      if (activeLayers.has('Usage')) {
+        legend.innerHTML += `
+          <strong>Usage</strong><br>
+          <div><span class="color-box" style="background:#000;"></span> Main</div>
+          <div><span class="color-box" style="background:#666;"></span> Branch</div>
+          <div><span class="color-box" style="background:#ff9900;"></span> Industrial</div><br>
+        `;
+      }
+
+      if (activeLayers.has('Gauge')) {
+        legend.innerHTML += `
+          <strong>Gauge</strong><br>
+          <div><span class="color-box" style="background:#444;"></span> 1435 mm</div>
+          <div><span class="color-box" style="background:#9900cc;"></span> 1000 mm</div>
+          <div><span class="color-box" style="background:#ff66cc;"></span> 750 mm</div>
+          <div><span class="color-box" style="background:#ffcc00;"></span> 600 mm</div><br>
+        `;
+      }
+
+      if (activeLayers.has('Route Color')) {
+        legend.innerHTML += `
+          <strong>Route Color</strong><br>
+          <div><span class="color-box" style="background:#000;"></span> Default (no color tag)</div><br>
+        `;
+      }
+    }
   </script>
+  <script>
+  fetch('railways.geojson')
+    .then(res => res.json())
+    .then(data => {
+      const speedLayer = L.geoJSON(data, {
+        style: feature => {
+          const speed = parseInt(feature.properties.maxspeed);
+          let color = '#d9d9d9';
+          if (!isNaN(speed)) {
+            if (speed < 20) color = '#d9d9d9';
+            else if (speed < 40) color = '#bdbdbd';
+            else if (speed < 60) color = '#969696';
+            else if (speed < 80) color = '#737373';
+            else if (speed < 100) color = '#525252';
+            else if (speed < 120) color = '#3182bd';
+            else if (speed < 140) color = '#6baed6';
+            else if (speed < 160) color = '#9ecae1';
+            else if (speed < 180) color = '#c6dbef';
+            else if (speed < 200) color = '#deebf7';
+            else if (speed < 220) color = '#fee0d2';
+            else if (speed < 240) color = '#fcbba1';
+            else if (speed < 260) color = '#fc9272';
+            else if (speed < 280) color = '#fb6a4a';
+            else if (speed < 300) color = '#ef3b2c';
+            else color = '#cb181d';
+          }
+          return { color, weight: 4 };
+        },
+        filter: f => f.properties.maxspeed,
+        onEachFeature: (f, l) => {
+          const s = f.properties.maxspeed || 'unknown';
+          const t = f.properties.railway || 'railway';
+          l.bindPopup(`Max Speed: ${s}<br>Type: ${t}`);
+        }
+      });
+
+      const statusLayer = L.geoJSON(data, {
+        style: f => {
+          const r = f.properties.railway || '';
+          const s = parseInt(f.properties.maxspeed);
+          let color = null;
+          let dashed = true;
+
+          if (r === 'abandoned') color = '#888';
+          else if (r === 'construction') color = '#ff9900';
+          else if (r === 'proposed') color = '#00ccff';
+          else if (r === 'rail') {
+            if (!isNaN(s)) {
+              color = s >= 250 ? '#ff0000' : '#000000';
+              dashed = false;
+            } else {
+              color = '#000000';
+              dashed = false;
+            }
+          }
+
+          if (!color) return null;
+          const style = { color, weight: 2 };
+          if (dashed) style.dashArray = '4 4';
+          return style;
+        },
+        filter: f => ['abandoned', 'construction', 'proposed', 'rail'].includes(f.properties.railway),
+        onEachFeature: (f, l) => {
+          const r = f.properties.railway || 'railway';
+          const s = f.properties.maxspeed || '';
+          l.bindPopup(`Status: ${r}<br>Max Speed: ${s}`);
+        }
+      });
+
+      const infraLayer = L.geoJSON(data, {
+        style: { color: '#444', weight: 1 },
+        filter: f => f.properties.railway === 'rail',
+        onEachFeature: (f, l) => {
+          const name = f.properties.name || '';
+          l.bindPopup(`Railway: ${f.properties.railway}${name ? `<br>Name: ${name}` : ''}`);
+        }
+      });
+
+      const otherRailLayer = L.geoJSON(data, {
+        style: f => {
+          const r = f.properties.railway;
+          if (r === 'metro') return { color: '#009999', weight: 2 };
+          if (r === 'narrow_gauge') return { color: '#9900cc', weight: 2 };
+          if (r === 'tram') return { color: '#ff66cc', weight: 2 };
+          if (r === 'light_rail') return { color: '#66ccff', weight: 2 };
+          if (r === 'funicular') return { color: '#ffcc00', weight: 2 };
+          return null;
+        },
+        filter: f => ['metro', 'narrow_gauge', 'tram', 'light_rail', 'funicular'].includes(f.properties.railway),
+        onEachFeature: (f, l) => {
+          const r = f.properties.railway;
+          const name = f.properties.name || '';
+          l.bindPopup(`Type: ${r}${name ? `<br>Name: ${name}` : ''}`);
+        }
+      });
+
+      const electrifiedLayer = L.geoJSON(data, {
+        style: f => {
+          const v = parseInt(f.properties.voltage);
+          const freq = f.properties.frequency;
+          let color = '#999';
+
+          const isDC = !freq || freq === '0' || freq.toLowerCase() === 'dc';
+
+          if (!isNaN(v)) {
+            if (isDC) {
+              if (v < 750) color = '#ffcc00';       // <750V DC
+              else if (v < 1500) color = '#ff9900'; // 750–1500V DC
+              else if (v < 3000) color = '#ff6600'; // 1500–3000V DC
+              else color = '#ff3300';               // ≥3000V DC
+            } else {
+              if (v < 15000) color = '#66ccff';     // <15kV AC
+              else if (v < 25000) color = '#3399ff';// 15–25kV AC
+              else color = '#0066cc';               // ≥25kV AC
+            }
+          }
+
+          return { color, weight: 2 };
+        },
+        filter: f => f.properties.voltage || f.properties.electrified,
+        onEachFeature: (f, l) => {
+          const e = f.properties.electrified || 'unspecified';
+          const v = f.properties.voltage || 'unspecified';
+          const freq = f.properties.frequency || 'unspecified';
+          l.bindPopup(`Electrified: ${e}<br>Voltage: ${v}<br>Frequency: ${freq}`);
+        }
+      });
+
+      const routeColorLayer = L.geoJSON(data, {
+        style: f => {
+          const color = f.properties.color || '#000000';
+          return { color, weight: 2 };
+        },
+        filter: f => f.geometry && f.geometry.type === 'LineString' && f.properties.railway,
+        onEachFeature: (f, l) => {
+          const name = f.properties.name || 'Unnamed';
+          const type = f.properties.railway;
+          const color = f.properties.color || 'none';
+          l.bindPopup(`Route<br>Name: ${name}<br>Type: ${type}<br>Color: ${color}`);
+        }
+      });
+
+      const gaugeLayer = L.geoJSON(data, {
+        style: f => {
+          const gauge = f.properties.gauge;
+          const r = f.properties.railway;
+          let color = '#000';
+          if (gauge === '1435') color = '#444';
+          else if (gauge === '1000') color = '#9900cc';
+          else if (gauge === '750') color = '#ff66cc';
+          else if (gauge === '600') color = '#ffcc00';
+          const weight = r === 'rail' ? 2 : 1.5;
+          return { color, weight };
+        },
+        filter: f => f.properties.gauge,
+        onEachFeature: (f, l) => {
+          const g = f.properties.gauge;
+          const r = f.properties.railway;
+          l.bindPopup(`Gauge: ${g}<br>Type: ${r}`);
+        }
+      });
+
+      const usageLayer = L.geoJSON(data, {
+        style: f => {
+          const usage = f.properties.usage;
+          let color = '#999';
+          if (usage === 'main') color = '#000';
+          else if (usage === 'branch') color = '#666';
+          else if (usage === 'industrial') color = '#ff9900';
+          return { color, weight: 2 };
+        },
+        filter: f => f.properties.usage,
+        onEachFeature: (f, l) => {
+          const usage = f.properties.usage;
+          l.bindPopup(`Usage: ${usage}`);
+        }
+      });
+            const baseMaps = {
+        "OGF Tiles": ogfTiles,
+        "White Background": whiteTiles,
+        "Greyscale": greyTiles
+      };
+
+      const overlays = {
+        "Max Speed": speedLayer,
+        "Status & Type": statusLayer,
+        "Infrastructure": infraLayer,
+        "Other Rail Types": otherRailLayer,
+        "Electrification": electrifiedLayer,
+        "Route Color": routeColorLayer,
+        "Gauge": gaugeLayer,
+        "Usage": usageLayer
+      };
+
+      Object.entries(overlays).forEach(([name, layer]) => {
+        layer.on('add', () => {
+          activeLayers.add(name);
+          updateLegend();
+        });
+        layer.on('remove', () => {
+          activeLayers.delete(name);
+          updateLegend();
+        });
+      });
+
+      // Add default layers
+      statusLayer.addTo(map);
+
+      // Add layer control (top-right)
+      L.control.layers(baseMaps, overlays, {
+        collapsed: false,
+        position: 'topright'
+      }).addTo(map);
+
+      // Fit map to infrastructure layer bounds
+      map.fitBounds(infraLayer.getBounds());
+    })
+    .catch(err => {
+      console.error('Failed to load railways.geojson:', err);
+      alert('Could not load railways.geojson. Make sure the file is present and served via a local server.');
+    });
+</script>
 </body>
 </html>
