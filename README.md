@@ -1,7 +1,7 @@
 # OpenRailFiction
 OpenRailFiction is a railway map for OpenGeoFiction, similar to [OpenRailwayMap](openrailwaymap.org)
 
-**Open an issue if you encounter an error, or want a feature added**
+**Open an [issue](https://github.com/Snaillover07/ogfRailMap/issues) if you encounter an error, or want a feature added**
 
 ## How to Use
 ### Prerequisites
